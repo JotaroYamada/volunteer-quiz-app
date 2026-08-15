@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ボランティア情報一覧</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>🤝 ボランティア情報一覧</h1>
+    <p>学生COおすすめのボランティア募集情報</p>
+  </header>
+
+  <main>
+    <!-- ここにJavaScriptで動的にカードが挿入されます -->
+    <div id="volunteer-list" class="card-grid">
+      <p class="loading">データを読み込み中...</p>
+    </div>
+  </main>
+
+  <!-- Notion Client SDK & メイン処理スクリプト -->
+  <script src="https://cdn.jsdelivr.net/npm/@notionhq/client/build/src/index.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

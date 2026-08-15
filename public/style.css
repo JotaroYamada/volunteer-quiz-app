@@ -1,0 +1,254 @@
+/* =================================================================
+   1. 基本設定・全体スタイル
+   ================================================================= */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", sans-serif;
+  background-color: #f0f4f8;
+  color: #2d3748;
+  margin: 0;
+  padding: 0 16px 60px;
+  line-height: 1.6;
+}
+
+header {
+  text-align: center;
+  padding: 40px 0 20px;
+}
+
+header h1 {
+  margin: 0 0 8px;
+  color: #1a202c;
+  font-size: 1.8rem;
+  font-weight: 800;
+}
+
+header p {
+  margin: 0;
+  color: #718096;
+  font-size: 0.95rem;
+}
+
+main {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+/* =================================================================
+   2. 診断質問カード（Quiz UI）
+   ================================================================= */
+.quiz-card {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 36px 28px;
+  max-width: 580px;
+  margin: 20px auto;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+  border: 1px solid #e2e8f0;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.quiz-step {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #3182ce;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 12px;
+}
+
+.quiz-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1a202c;
+  margin: 0 0 28px;
+  line-height: 1.5;
+}
+
+.quiz-options {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* 選択肢ボタン */
+.quiz-option-btn {
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px 20px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #4a5568;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.quiz-option-btn:hover {
+  border-color: #3182ce;
+  background-color: #ebf8ff;
+  color: #2b6cb0;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(49, 130, 206, 0.12);
+}
+
+.quiz-option-btn:active {
+  transform: translateY(0);
+}
+
+/* =================================================================
+   3. 診断結果ヘッダー & カードレイアウト
+   ================================================================= */
+.result-header {
+  text-align: center;
+  margin-bottom: 32px;
+  animation: fadeIn 0.5s ease-out;
+}
+
+.result-header h2 {
+  font-size: 1.6rem;
+  color: #2d3748;
+  margin: 0 0 8px;
+}
+
+.result-header p {
+  color: #718096;
+  margin: 0 0 20px;
+}
+
+.retry-btn {
+  background-color: #e2e8f0;
+  color: #4a5568;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 30px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.retry-btn:hover {
+  background-color: #cbd5e0;
+}
+
+/* カードを並べるレスポンシブグリッド */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 24px;
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* =================================================================
+   4. ボランティア詳細カードデザイン
+   ================================================================= */
+.card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  border: 1px solid #edf2f7;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+}
+
+/* 相性スコアルバッジ */
+.match-badge {
+  display: inline-block;
+  background: #e6fffa;
+  color: #234e52;
+  border: 1px solid #b2f5ea;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 20px;
+  margin-bottom: 14px;
+}
+
+.card-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0 0 10px;
+  color: #1a202c;
+  line-height: 1.4;
+}
+
+.card-org {
+  font-size: 0.88rem;
+  color: #718096;
+  margin: 0 0 16px;
+}
+
+/* タグ一覧 */
+.tag-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.tag {
+  background-color: #f7fafc;
+  color: #4a5568;
+  border: 1px solid #e2e8f0;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+/* Notionリンクボタン */
+.card-link {
+  display: block;
+  text-align: center;
+  background-color: #3182ce;
+  color: #ffffff;
+  padding: 12px;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.95rem;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.card-link:hover {
+  background-color: #2b6cb0;
+}
+
+/* ローディング・エラー表示 */
+.loading {
+  text-align: center;
+  color: #a0aec0;
+  font-size: 1.1rem;
+  padding: 60px 0;
+}
+
+/* =================================================================
+   5. アニメーション定義
+   ================================================================= */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
