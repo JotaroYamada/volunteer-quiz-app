@@ -1,7 +1,7 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { Client } from '@notionhq/client';
-import 'dotenv/config';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
