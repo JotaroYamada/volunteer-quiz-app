@@ -21,8 +21,7 @@ app.get('/api/volunteers', async (req, res) => {
   try {
     // 1. Notion API からデータ取得
     const response = await notion.dataSources.query({
-      data_source_id: process.env.NOTION_DATABASE_ID,
-      page_size: 100,
+      data_source_id: process.env.NOTION_DATABASE_ID
     });
 
     // 2. データの整形（これまで作ってきたロジック）
