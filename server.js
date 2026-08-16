@@ -50,8 +50,3 @@ app.get('/api/volunteers', async (req, res) => {
 
 // 静的ファイル（index.htmlやapp.jsなど）をpublicフォルダから提供する場合の設定
 app.use(express.static('public'));
-
-// サーバー起動
-app.listen(PORT, () => {
-  console.log(`🚀 サーバーが起動しました: http://localhost:${PORT}`);
-});
