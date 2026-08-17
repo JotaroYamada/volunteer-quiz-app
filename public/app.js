@@ -15,13 +15,31 @@ const TAG_WEIGHTS = {
 
 const DEFAULT_WEIGHT = { child: 0, place: 0, support: 0, work: 0 };
 
+// 地域マッピング（ユーザー選択肢 ⇔ Notion地域タグの揺れ吸収）
+const REGION_MAP = {
+  osaka: ['大阪府', '高槻市', '茨木'],
+  kyoto: ['京都府', '京都市'],
+  any: [] // どこでもOK
+};
+
 // =================================================================
-// 2. 質問設定
+// 2. 質問設定（Q0に地域質問を追加）
 // =================================================================
 const questions = [
   {
+    id: 'q_region',
+    type: 'checkbox', // ★地域選択用の複数選択形式
+    text: 'Q1. 活動したい地域を選択してください（複数選択可）',
+    options: [
+      { label: '📍 大阪エリア（茨木・高槻など）', value: 'osaka' },
+      { label: '📍 京都エリア（京都市など）', value: 'kyoto' },
+      { label: '🌐 どこでもOK / 指定なし', value: 'any' }
+    ]
+  },
+  {
     id: 'q_child',
-    text: 'Q1. 子どもや学生に関わる活動にどのくらい興味がありますか？',
+    type: 'radio',
+    text: 'Q2. 子どもや学生に関わる活動にどのくらい興味がありますか？',
     attribute: 'child',
     options: [
       { label: '🔥 とても関わりたい', value: 3 },
@@ -31,7 +49,8 @@ const questions = [
   },
   {
     id: 'q_place',
-    text: 'Q2. 居場所づくりや、地域の人との交流空間を作ることに関心はありますか？',
+    type: 'radio',
+    text: 'Q3. 居場所づくりや、地域の人との交流空間を作ることに関心はありますか？',
     attribute: 'place',
     options: [
       { label: '🏠 居場所づくり・空間作りに興味がある', value: 3 },
@@ -41,7 +60,8 @@ const questions = [
   },
   {
     id: 'q_support',
-    text: 'Q3. 誰かに勉強や知識を教えたり、成長をサポートする活動はどうですか？',
+    type: 'radio',
+    text: 'Q4. 誰かに勉強や知識を教えたり、成長をサポートする活動はどうですか？',
     attribute: 'support',
     options: [
       { label: '📚 勉強を教えたりサポートしたい', value: 3 },
@@ -51,7 +71,8 @@ const questions = [
   },
   {
     id: 'q_work',
-    text: 'Q4. 作成作業や農作業、体を動かすような体験型活動に興味はありますか？',
+    type: 'radio',
+    text: 'Q5. 作成作業や農作業、体を動かすような体験型活動に興味はありますか？',
     attribute: 'work',
     options: [
       { label: '🎨 手作業や農作業などをやってみたい', value: 3 },
@@ -63,12 +84,14 @@ const questions = [
 
 // 状態管理
 let currentQuestionIndex = 0;
+let selectedRegions = []; // ★選択された地域キーの配列
 let userPreferences = { child: 0, place: 0, support: 0, work: 0 };
-let answerHistory = []; 
+let answerHistory = [];
 let volunteerData = [];
 
-// グローバル（window）に割り当てて HTML の onclick から呼び出せるように設定
+// グローバル（window）に割り当てて HTML から呼び出せるように設定
 window.handleAnswer = handleAnswer;
+window.handleRegionAnswer = handleRegionAnswer;
 window.goBack = goBack;
 window.resetQuiz = resetQuiz;
 
@@ -94,11 +117,34 @@ function showQuestion(index) {
   const q = questions[index];
   const container = document.getElementById('volunteer-list');
 
-  const optionsHtml = q.options.map(opt => `
-    <button class="quiz-option-btn" onclick="handleAnswer('${q.attribute}', ${opt.value})">
-      ${opt.label}
-    </button>
-  `).join('');
+  let optionsHtml = '';
+
+  if (q.type === 'checkbox') {
+    // 地域選択（チェックボックス）の描画
+    optionsHtml = `
+      <form id="region-form" style="display: flex; flex-direction: column; gap: 12px; text-align: left; max-width: 320px; margin: 0 auto;">
+        ${q.options.map(opt => {
+          const isChecked = selectedRegions.includes(opt.value) ? 'checked' : '';
+          return `
+            <label style="font-size: 1.05rem; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 6px 0;">
+              <input type="checkbox" name="region" value="${opt.value}" ${isChecked} style="transform: scale(1.3);">
+              ${opt.label}
+            </label>
+          `;
+        }).join('')}
+        <button type="button" onclick="handleRegionAnswer()" class="quiz-option-btn" style="margin-top: 15px; background: #007bff; color: white;">
+          次へ進む ➔
+        </button>
+      </form>
+    `;
+  } else {
+    // 既存の単一選択ボタンの描画
+    optionsHtml = q.options.map(opt => `
+      <button class="quiz-option-btn" onclick="handleAnswer('${q.attribute}', ${opt.value})">
+        ${opt.label}
+      </button>
+    `).join('');
+  }
 
   // 1問目以外のときだけ「戻る」ボタンを表示
   const backButtonHtml = index > 0 ? `
@@ -120,16 +166,38 @@ function showQuestion(index) {
 }
 
 // =================================================================
-// 5. 回答処理 & 次の質問へ
+// 5. 回答処理
 // =================================================================
-function handleAnswer(attribute, value) {
-  // 1. 回答前の状態を履歴に保存
+
+// 【地域回答時の処理】
+function handleRegionAnswer() {
+  const checkboxes = document.querySelectorAll('input[name="region"]:checked');
+  const values = Array.from(checkboxes).map(cb => cb.value);
+
+  if (values.length === 0) {
+    alert('少なくとも1つの地域を選択してください。');
+    return;
+  }
+
+  // 履歴保存＆状態更新
   answerHistory.push({
+    type: 'region',
+    previousValue: [...selectedRegions]
+  });
+  selectedRegions = values;
+
+  currentQuestionIndex++;
+  showQuestion(currentQuestionIndex);
+}
+
+// 【属性スコア回答時の処理】
+function handleAnswer(attribute, value) {
+  answerHistory.push({
+    type: 'attribute',
     attribute: attribute,
     previousValue: userPreferences[attribute]
   });
 
-  // 2. ユーザーの回答を希望ベクトルに保存
   userPreferences[attribute] = value;
   currentQuestionIndex++;
 
@@ -140,30 +208,47 @@ function handleAnswer(attribute, value) {
   }
 }
 
-// 一つ前の問題に戻る処理
+// 【一つ前の問題に戻る処理】
 function goBack() {
   if (currentQuestionIndex <= 0) return;
 
-  // 1. 直前の回答履歴を取り出す
   const lastAnswer = answerHistory.pop();
 
-  // 2. スコアを取り出した時点の値に巻き戻す
   if (lastAnswer) {
-    userPreferences[lastAnswer.attribute] = lastAnswer.previousValue;
+    if (lastAnswer.type === 'region') {
+      selectedRegions = lastAnswer.previousValue;
+    } else if (lastAnswer.type === 'attribute') {
+      userPreferences[lastAnswer.attribute] = lastAnswer.previousValue;
+    }
   }
 
-  // 3. インデックスを1つ減らして画面を再描画
   currentQuestionIndex--;
   showQuestion(currentQuestionIndex);
 }
 
 // =================================================================
-// 6. 重みづけマッチング計算 & 結果描画
+// 6. 重みづけマッチング計算 & 結果描画（地域絞り込み適用）
 // =================================================================
 function showResults() {
   const container = document.getElementById('volunteer-list');
 
-  const scoredVolunteers = volunteerData.map(item => {
+  // 1. 地域による事前フィルタリング
+  const regionFilteredVolunteers = volunteerData.filter(item => {
+    // 「どこでもOK (any)」が選ばれている場合はすべて通過
+    if (selectedRegions.includes('any')) return true;
+
+    // 選択された地域キーに対応するNotionタグの一覧を取得
+    const allowedTags = selectedRegions.flatMap(regKey => REGION_MAP[regKey] || []);
+
+    // item.region が配列か文字列かに応じて判定
+    const itemRegions = Array.isArray(item.region) ? item.region : [item.region];
+    
+    // 1つでも合致する地域タグが含まれていればOK
+    return itemRegions.some(r => allowedTags.includes(r));
+  });
+
+  // 2. 絞り込まれたボランティアに対して相性スコアを計算
+  const scoredVolunteers = regionFilteredVolunteers.map(item => {
     let score = 0;
     item.tags.forEach(tagName => {
       const weights = TAG_WEIGHTS[tagName] || DEFAULT_WEIGHT;
@@ -180,25 +265,30 @@ function showResults() {
   .filter(item => item.matchScore > 0)
   .sort((a, b) => b.matchScore - a.matchScore);
 
+  // 該当なしの場合
   if (scoredVolunteers.length === 0) {
     container.innerHTML = `
       <div class="result-header">
         <h2>🔍 診断完了</h2>
-        <p>回答に合致するボランティアが見つかりませんでした。</p>
+        <p>選択された地域・条件に合致するボランティアが見つかりませんでした。</p>
         <button onclick="resetQuiz()" class="retry-btn">もう一度診断する</button>
       </div>
     `;
     return;
   }
 
+  // 結果カードの生成
   const cardsHtml = scoredVolunteers.map(item => {
     const tagsHtml = item.tags.map(tag => `<span class="tag"># ${tag}</span>`).join('');
+    const regionDisplay = Array.isArray(item.region) ? item.region.join(', ') : (item.region || '未設定');
+
     return `
       <div class="card">
         <div>
           <span class="match-badge">相性スコア: ${item.matchScore} pt</span>
           <h2 class="card-title">${item.title}</h2>
           <p class="card-org">🏢 ${item.organization}</p>
+          <p class="card-region" style="font-size: 0.9rem; color: #555; margin: 4px 0;">📍 地域: ${regionDisplay}</p>
           <div class="tag-container">${tagsHtml}</div>
         </div>
         <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="card-link">Notionで詳細を見る</a>
@@ -219,12 +309,13 @@ function showResults() {
 }
 
 // =================================================================
-// 7. 診断のリセット処理（★履歴も初期化）
+// 7. 診断のリセット処理
 // =================================================================
 function resetQuiz() {
   currentQuestionIndex = 0;
+  selectedRegions = [];
   userPreferences = { child: 0, place: 0, support: 0, work: 0 };
-  answerHistory = []; // 履歴配列もクリア
+  answerHistory = [];
   
   showQuestion(currentQuestionIndex);
 }

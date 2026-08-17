@@ -26,11 +26,25 @@ app.get('/api/volunteers', async (req, res) => {
       .filter(page => page.properties['件名']?.title?.length > 0)
       .map(page => {
         const props = page.properties;
+
+        // ★追加: 「地域」列のパース処理（マルチセレクト / セレクトの両対応）
+        let regionData = [];
+        const regionProp = props['地域'];
+
+        if (regionProp) {
+          if (regionProp.type === 'multi_select' && regionProp.multi_select) {
+            regionData = regionProp.multi_select.map(item => item.name);
+          } else if (regionProp.type === 'select' && regionProp.select) {
+            regionData = [regionProp.select.name];
+          }
+        }
+
         return {
           id: page.id,
           title: props['件名']?.title[0]?.plain_text || 'タイトルなし',
           tags: props['タグ']?.multi_select?.map(tag => tag.name) || [],
           organization: props['団体名']?.rich_text[0]?.plain_text || '未設定',
+          region: regionData, // ★追加: 整形済み地域データをレスポンスに挿入
           url: page.url
         };
       });
