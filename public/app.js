@@ -64,7 +64,7 @@ const questions = [
 // 状態管理
 let currentQuestionIndex = 0;
 let userPreferences = { child: 0, place: 0, support: 0, work: 0 };
-let answerHistory = []; // ★追加：回答履歴を保持する配列
+let answerHistory = []; 
 let volunteerData = [];
 
 // グローバル（window）に割り当てて HTML の onclick から呼び出せるように設定
