@@ -29,11 +29,11 @@ const questions = [
   {
     id: 'q_region',
     type: 'checkbox', // ★地域選択用の複数選択形式
-    text: 'Q1. 活動したい地域を選択してください（複数選択可）',
+    text: 'Q1. 活動したい地域を選択してね（複数選択可）',
     options: [
-      { label: '📍 大阪エリア（茨木・高槻など）', value: 'osaka' },
-      { label: '📍 京都エリア（京都市など）', value: 'kyoto' },
-      { label: '🌐 どこでもOK / 指定なし', value: 'any' }
+      { label: '大阪エリア（茨木・高槻など）', value: 'osaka' },
+      { label: '京都エリア（京都市など）', value: 'kyoto' },
+      { label: 'どこでもOK / 指定なし', value: 'any' }
     ]
   },
   {
@@ -42,8 +42,8 @@ const questions = [
     text: 'Q2. 子どもや学生に関わる活動にどのくらい興味がありますか？',
     attribute: 'child',
     options: [
-      { label: '🔥 とても関わりたい', value: 3 },
-      { label: '😊 機会があれば関わりたい', value: 1 },
+      { label: 'とても関わりたい', value: 3 },
+      { label: '機会があれば関わりたい', value: 1 },
       { label: 'どちらでもいい / あまりこだわらない', value: 0 }
     ]
   },
@@ -53,8 +53,8 @@ const questions = [
     text: 'Q3. 居場所づくりや、地域の人との交流空間を作ることに関心はありますか？',
     attribute: 'place',
     options: [
-      { label: '🏠 居場所づくり・空間作りに興味がある', value: 3 },
-      { label: '🤝 ゆるやかな交流があればOK', value: 1 },
+      { label: '居場所づくり・空間作りに興味がある', value: 3 },
+      { label: 'ゆるやかな交流があればOK', value: 1 },
       { label: 'あまりこだわらない', value: 0 }
     ]
   },
@@ -64,7 +64,7 @@ const questions = [
     text: 'Q4. 誰かに勉強や知識を教えたり、成長をサポートする活動はどうですか？',
     attribute: 'support',
     options: [
-      { label: '📚 勉強を教えたりサポートしたい', value: 3 },
+      { label: '勉強を教えたりサポートしたい', value: 3 },
       { label: 'サポート役に興味はある', value: 1 },
       { label: 'あまりこだわらない', value: 0 }
     ]
@@ -75,7 +75,7 @@ const questions = [
     text: 'Q5. 作成作業や農作業、体を動かすような体験型活動に興味はありますか？',
     attribute: 'work',
     options: [
-      { label: '🎨 手作業や農作業などをやってみたい', value: 3 },
+      { label: '手作業や農作業などをやってみたい', value: 3 },
       { label: '体を動かす程度ならOK', value: 2 },
       { label: 'あまりこだわらない', value: 0 }
     ]
@@ -288,7 +288,7 @@ function showResults() {
           <span class="match-badge">相性スコア: ${item.matchScore} pt</span>
           <h2 class="card-title">${item.title}</h2>
           <p class="card-org">🏢 ${item.organization}</p>
-          <p class="card-region" style="font-size: 0.9rem; color: #555; margin: 4px 0;">📍 地域: ${regionDisplay}</p>
+          <p class="card-region" style="font-size: 0.9rem; color: #555; margin: 4px 0;">地域: ${regionDisplay}</p>
           <div class="tag-container">${tagsHtml}</div>
         </div>
         <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="card-link">Notionで詳細を見る</a>
