@@ -1,7 +1,5 @@
 // =================================================================
 // 1. タグの重みづけ辞書（Vector Table）
-// 4次元: child(子ども/教育), place(居場所/交流), support(学び/成長), work(体験/作業)
-// ※ メンバーとの議論で数値や項目を調整・追加できます
 // =================================================================
 const TAG_WEIGHTS = {
   '放課後子供教室': { child: 3, place: 2, support: 2, work: 1 },
@@ -18,7 +16,7 @@ const TAG_WEIGHTS = {
 const DEFAULT_WEIGHT = { child: 0, place: 0, support: 0, work: 0 };
 
 // =================================================================
-// 2. 質問設定（ユーザーの希望ベクトルを作るための質問）
+// 2. 質問設定
 // =================================================================
 const questions = [
   {
@@ -27,7 +25,7 @@ const questions = [
     attribute: 'child',
     options: [
       { label: '🔥 とても関わりたい', value: 3 },
-      { label: '😊 機会があれば関わりたい', value: 2 },
+      { label: '😊 機会があれば関わりたい', value: 1 },
       { label: 'どちらでもいい / あまりこだわらない', value: 0 }
     ]
   },
@@ -37,7 +35,7 @@ const questions = [
     attribute: 'place',
     options: [
       { label: '🏠 居場所づくり・空間作りに興味がある', value: 3 },
-      { label: '🤝 ゆるやかな交流があればOK', value: 2 },
+      { label: '🤝 ゆるやかな交流があればOK', value: 1 },
       { label: 'あまりこだわらない', value: 0 }
     ]
   },
@@ -47,7 +45,7 @@ const questions = [
     attribute: 'support',
     options: [
       { label: '📚 勉強を教えたりサポートしたい', value: 3 },
-      { label: 'サポート役に興味はある', value: 2 },
+      { label: 'サポート役に興味はある', value: 1 },
       { label: 'あまりこだわらない', value: 0 }
     ]
   },
@@ -66,7 +64,13 @@ const questions = [
 // 状態管理
 let currentQuestionIndex = 0;
 let userPreferences = { child: 0, place: 0, support: 0, work: 0 };
+let answerHistory = []; // ★追加：回答履歴を保持する配列
 let volunteerData = [];
+
+// グローバル（window）に割り当てて HTML の onclick から呼び出せるように設定
+window.handleAnswer = handleAnswer;
+window.goBack = goBack;
+window.resetQuiz = resetQuiz;
 
 // =================================================================
 // 3. 初期化 & Expressサーバーからのデータ取得
@@ -96,6 +100,13 @@ function showQuestion(index) {
     </button>
   `).join('');
 
+  // 1問目以外のときだけ「戻る」ボタンを表示
+  const backButtonHtml = index > 0 ? `
+    <button class="back-btn" onclick="goBack()" style="margin-top: 15px; background: #6c757d; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
+      ← 前の質問に戻る
+    </button>
+  ` : '';
+
   container.innerHTML = `
     <div class="quiz-card">
       <p class="quiz-step">第 ${index + 1} 問 / 全 ${questions.length} 問</p>
@@ -103,6 +114,7 @@ function showQuestion(index) {
       <div class="quiz-options">
         ${optionsHtml}
       </div>
+      ${backButtonHtml}
     </div>
   `;
 }
@@ -111,7 +123,13 @@ function showQuestion(index) {
 // 5. 回答処理 & 次の質問へ
 // =================================================================
 function handleAnswer(attribute, value) {
-  // ユーザーの回答を希望ベクトルに保存
+  // 1. 回答前の状態を履歴に保存
+  answerHistory.push({
+    attribute: attribute,
+    previousValue: userPreferences[attribute]
+  });
+
+  // 2. ユーザーの回答を希望ベクトルに保存
   userPreferences[attribute] = value;
   currentQuestionIndex++;
 
@@ -122,13 +140,29 @@ function handleAnswer(attribute, value) {
   }
 }
 
+// 一つ前の問題に戻る処理
+function goBack() {
+  if (currentQuestionIndex <= 0) return;
+
+  // 1. 直前の回答履歴を取り出す
+  const lastAnswer = answerHistory.pop();
+
+  // 2. スコアを取り出した時点の値に巻き戻す
+  if (lastAnswer) {
+    userPreferences[lastAnswer.attribute] = lastAnswer.previousValue;
+  }
+
+  // 3. インデックスを1つ減らして画面を再描画
+  currentQuestionIndex--;
+  showQuestion(currentQuestionIndex);
+}
+
 // =================================================================
 // 6. 重みづけマッチング計算 & 結果描画
 // =================================================================
 function showResults() {
   const container = document.getElementById('volunteer-list');
 
-  // 各ボランティアのスコアを計算
   const scoredVolunteers = volunteerData.map(item => {
     let score = 0;
     item.tags.forEach(tagName => {
@@ -146,19 +180,17 @@ function showResults() {
   .filter(item => item.matchScore > 0)
   .sort((a, b) => b.matchScore - a.matchScore);
 
-  // 該当なしの場合
   if (scoredVolunteers.length === 0) {
     container.innerHTML = `
       <div class="result-header">
         <h2>🔍 診断完了</h2>
         <p>回答に合致するボランティアが見つかりませんでした。</p>
-        <button onclick="resetQuiz()" class="retry-btn">🔄 もう一度診断する</button>
+        <button onclick="resetQuiz()" class="retry-btn">もう一度診断する</button>
       </div>
     `;
     return;
   }
 
-  // 結果がある場合（★ヘッダーに「もう一度診断する」ボタンを追加）
   const cardsHtml = scoredVolunteers.map(item => {
     const tagsHtml = item.tags.map(tag => `<span class="tag"># ${tag}</span>`).join('');
     return `
@@ -176,9 +208,9 @@ function showResults() {
 
   container.innerHTML = `
     <div class="result-header">
-      <h2>🎉 あなたにおすすめのボランティア</h2>
-      <p>相性スコアが高い順に表示しています</p>
-      <button onclick="resetQuiz()" class="retry-btn">🔄 もう一度診断する</button>
+      <h2>あなたにおすすめのボランティア</h2>
+      <p>分析の結果から,相性の良い順に表示しています</p>
+      <button onclick="resetQuiz()" class="retry-btn">もう一度診断する</button>
     </div>
     <div class="card-grid">
       ${cardsHtml}
@@ -187,13 +219,12 @@ function showResults() {
 }
 
 // =================================================================
-// 7. 診断のリセット処理（★新規追加）
+// 7. 診断のリセット処理（★履歴も初期化）
 // =================================================================
 function resetQuiz() {
-  // 状態を完全に初期化
   currentQuestionIndex = 0;
   userPreferences = { child: 0, place: 0, support: 0, work: 0 };
+  answerHistory = []; // 履歴配列もクリア
   
-  // 最初の質問を表示
   showQuestion(currentQuestionIndex);
 }

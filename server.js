@@ -16,7 +16,7 @@ const notion = new Client({ auth: process.env.NOTION_API_KEY });
 // APIエンドポイント: /api/volunteers
 app.get('/api/volunteers', async (req, res) => {
   try {
-    // 1. Notion API からデータ取得（databases.query と database_id に修正）
+    // 1. Notion API からデータ取得
     const response = await notion.databases.query({
       database_id: process.env.NOTION_DATABASE_ID
     });
