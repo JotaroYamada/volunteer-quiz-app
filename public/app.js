@@ -229,40 +229,48 @@ function goBack() {
 // =================================================================
 // 6. 重みづけマッチング計算 & 結果描画（地域絞り込み適用）
 // =================================================================
+// =================================================================
+// 6. 重みづけマッチング計算 & 結果描画（平均スコア方式 適用版）
+// =================================================================
 function showResults() {
   const container = document.getElementById('volunteer-list');
 
   // 1. 地域による事前フィルタリング
   const regionFilteredVolunteers = volunteerData.filter(item => {
-    // 「どこでもOK (any)」が選ばれている場合はすべて通過
     if (selectedRegions.includes('any')) return true;
 
-    // 選択された地域キーに対応するNotionタグの一覧を取得
     const allowedTags = selectedRegions.flatMap(regKey => REGION_MAP[regKey] || []);
-
-    // item.region が配列か文字列かに応じて判定
     const itemRegions = Array.isArray(item.region) ? item.region : [item.region];
     
-    // 1つでも合致する地域タグが含まれていればOK
     return itemRegions.some(r => allowedTags.includes(r));
   });
 
-  // 2. 絞り込まれたボランティアに対して相性スコアを計算
+  // 2. 絞り込まれたボランティアに対して「平均相性スコア」を計算
   const scoredVolunteers = regionFilteredVolunteers.map(item => {
-    let score = 0;
+    let totalScore = 0;
+    
+    // 各タグごとのスコアを合計
     item.tags.forEach(tagName => {
       const weights = TAG_WEIGHTS[tagName] || DEFAULT_WEIGHT;
       for (const attr in userPreferences) {
-        score += (weights[attr] || 0) * (userPreferences[attr] || 0);
+        totalScore += (weights[attr] || 0) * (userPreferences[attr] || 0);
       }
     });
 
+    // ★ 改善ポイント: タグ数で割って平均スコアを出す（0割防止のため最小値を1に）
+    const tagCount = item.tags.length > 0 ? item.tags.length : 1;
+    
+    // 小数第1位までに丸める（例: 2.333... -> 2.3）
+    const averageScore = Math.round((totalScore / tagCount) * 10) / 10;
+
     return {
       ...item,
-      matchScore: score
+      matchScore: averageScore
     };
   })
+  // スコアが 0 より大きいものだけを残す
   .filter(item => item.matchScore > 0)
+  // 平均スコアが高い順（降順）にソート
   .sort((a, b) => b.matchScore - a.matchScore);
 
   // 該当なしの場合
@@ -285,10 +293,10 @@ function showResults() {
     return `
       <div class="card">
         <div>
-          <span class="match-badge">相性スコア: ${item.matchScore} pt</span>
+          <span class="match-badge">相性度: ${item.matchScore} / 9.0 pt</span>
           <h2 class="card-title">${item.title}</h2>
           <p class="card-org">🏢 ${item.organization}</p>
-          <p class="card-region" style="font-size: 0.9rem; color: #555; margin: 4px 0;">地域: ${regionDisplay}</p>
+          <p class="card-region" style="font-size: 0.9rem; color: #555; margin: 4px 0;">📍 地域: ${regionDisplay}</p>
           <div class="tag-container">${tagsHtml}</div>
         </div>
         <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="card-link">Notionで詳細を見る</a>
