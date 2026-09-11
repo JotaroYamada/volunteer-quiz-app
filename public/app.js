@@ -312,7 +312,7 @@ function showResults() {
     return `
       <div class="card">
         <div>
-          <span class="match-badge">相性度: ${item.matchScore} / 9.0 pt</span>
+          <span class="match-badge">相性度: ${item.matchScore}</span>
           <h2 class="card-title">${item.title}</h2>
           <p class="card-org">🏢 ${item.organization}</p>
           <p class="card-region" style="font-size: 0.9rem; color: #555; margin: 4px 0;">📍 地域: ${regionDisplay}</p>
