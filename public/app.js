@@ -2,18 +2,19 @@
 // 1. タグの重みづけ辞書（Vector Table）
 // =================================================================
 const TAG_WEIGHTS = {
-  '放課後子供教室': { child: 3, place: 2, support: 2, work: 1 },
-  '子ども':         { child: 3, place: 1, support: 1, work: 0 },
-  '学校':           { child: 3, place: 1, support: 2, work: 0 },
-  '子ども食堂':     { child: 3, place: 3, support: 1, work: 1 },
-  '掃除':           { child: 0, place: 1, support: 0, work: 3 },
-  '居場所づくり':   { child: 2, place: 3, support: 1, work: 1 },
-  '学習支援':       { child: 3, place: 2, support: 3, work: 0 },
-  'クラフト':       { child: 1, place: 1, support: 0, work: 3 },
-  '農園芸':         { child: 1, place: 1, support: 0, work: 3 }
+  // タグ名: { nature:自然, child:子供, welfare:福祉, disaster:災害, community:街づくり }
+  '子ども':         { nature: 0, child: 3, welfare: 1, disaster: 0, community: 1 },
+  '学習支援':       { nature: 0, child: 3, welfare: 1, disaster: 0, community: 0 },
+  '子ども食堂':     { nature: 0, child: 3, welfare: 2, disaster: 0, community: 2 },
+  '居場所づくり':   { nature: 0, child: 1, welfare: 2, disaster: 0, community: 3 },
+  '学校':           { nature: 0, child: 3, welfare: 0, disaster: 0, community: 1 },
+  '掃除':           { nature: 2, child: 0, welfare: 0, disaster: 1, community: 2 },
+  'クラフト':       { nature: 1, child: 2, welfare: 1, disaster: 0, community: 1 },
+  '農園芸':         { nature: 3, child: 1, welfare: 1, disaster: 0, community: 1 },
+  '放課後子供教室': { nature: 0, child: 3, welfare: 1, disaster: 0, community: 1 }
 };
 
-const DEFAULT_WEIGHT = { child: 0, place: 0, support: 0, work: 0 };
+const DEFAULT_WEIGHT = { nature: 0, child: 0, welfare: 0, disaster: 0, community: 0 };
 
 // 地域マッピング（ユーザー選択肢 ⇔ Notion地域タグの揺れ吸収）
 const REGION_MAP = {
@@ -25,59 +26,86 @@ const REGION_MAP = {
 // =================================================================
 // 2. 質問設定（Q0に地域質問を追加）
 // =================================================================
+// 初期状態のユーザー希望値
+let userPreferences = {
+  nature: 0,
+  child: 0,
+  welfare: 0,
+  disaster: 0,
+  community: 0
+};
+
+// 質問データ（Q1は地域選択、Q2〜Q6が5つのテーマ質問）
 const questions = [
+  // Q1: 地域選択（既存通り）
   {
     id: 'q_region',
-    type: 'checkbox', // ★地域選択用の複数選択形式
-    text: 'Q1. 活動したい地域を選択してね（複数選択可）',
+    type: 'checkbox',
+    text: 'Q1. 活動したい地域を選択してください（複数選択可）',
     options: [
       { label: '大阪エリア（茨木・高槻など）', value: 'osaka' },
       { label: '京都エリア（京都市など）', value: 'kyoto' },
       { label: 'どこでもOK / 指定なし', value: 'any' }
     ]
   },
+  // Q2: 自然・環境
+  {
+    id: 'q_nature',
+    type: 'radio',
+    text: 'Q2. 自然との触れ合いや環境保全、農作業などの活動に興味はありますか？',
+    attribute: 'nature',
+    options: [
+      { label: 'とても興味がある・やってみたい', value: 3 },
+      { label: '機会があれば関わりたい', value: 1 },
+      { label: 'あまりこだわりはない', value: 0 }
+    ]
+  },
+  // Q3: 子ども・教育
   {
     id: 'q_child',
     type: 'radio',
-    text: 'Q2. 子どもや学生に関わる活動にどのくらい興味がありますか？',
+    text: 'Q3. 子どもの成長支援や学習、子ども向けイベントに関わりたいですか？',
     attribute: 'child',
     options: [
-      { label: 'とても関わりたい', value: 3 },
-      { label: '機会があれば関わりたい', value: 1 },
-      { label: 'どちらでもいい / あまりこだわらない', value: 0 }
+      { label: 'ぜひ子どもに関わる活動がしたい', value: 3 },
+      { label: '関われる機会があれば嬉しい', value: 1 },
+      { label: 'あまりこだわりはない', value: 0 }
     ]
   },
+  // Q4: 福祉・サポート
   {
-    id: 'q_place',
+    id: 'q_welfare',
     type: 'radio',
-    text: 'Q3. 居場所づくりや、地域の人との交流空間を作ることに関心はありますか？',
-    attribute: 'place',
+    text: 'Q4. 高齢者や障害のある方のサポート、福祉・共生社会に関心はありますか？',
+    attribute: 'welfare',
     options: [
-      { label: '居場所づくり・空間作りに興味がある', value: 3 },
-      { label: 'ゆるやかな交流があればOK', value: 1 },
-      { label: 'あまりこだわらない', value: 0 }
+      { label: '福祉やサポート活動に興味がある', value: 3 },
+      { label: '手助けできることがあればやりたい', value: 1 },
+      { label: 'あまりこだわりはない', value: 0 }
     ]
   },
+  // Q5: 防災・救護
   {
-    id: 'q_support',
+    id: 'q_disaster',
     type: 'radio',
-    text: 'Q4. 誰かに勉強や知識を教えたり、成長をサポートする活動はどうですか？',
-    attribute: 'support',
+    text: 'Q5. 防災啓発や地域の安全、災害対策などのボランティアに関心はありますか？',
+    attribute: 'disaster',
     options: [
-      { label: '勉強を教えたりサポートしたい', value: 3 },
-      { label: 'サポート役に興味はある', value: 1 },
-      { label: 'あまりこだわらない', value: 0 }
+      { label: '防災・安全に関する活動をしたい', value: 3 },
+      { label: '関心はある・学んでみたい', value: 1 },
+      { label: 'あまりこだわりはない', value: 0 }
     ]
   },
+  // Q6: まちづくり・地域活性
   {
-    id: 'q_work',
+    id: 'q_community',
     type: 'radio',
-    text: 'Q5. 作成作業や農作業、体を動かすような体験型活動に興味はありますか？',
-    attribute: 'work',
+    text: 'Q6. 地域イベントの運営や居場所づくり、街の活性化に関わりたいですか？',
+    attribute: 'community',
     options: [
-      { label: '手作業や農作業などをやってみたい', value: 3 },
-      { label: '体を動かす程度ならOK', value: 2 },
-      { label: 'あまりこだわらない', value: 0 }
+      { label: '居場所づくりやイベントに関わりたい', value: 3 },
+      { label: 'ゆるく地域とつながりたい', value: 1 },
+      { label: 'あまりこだわりはない', value: 0 }
     ]
   }
 ];
